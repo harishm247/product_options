@@ -29,7 +29,6 @@ class ProductOptionsController extends Controller
         $this->siteInterface            = $siteInterface;
     }
 
-
     public function product(){
         $optionsData = $this->productOptionsInterface->getCollection();
         if(empty($optionsData)){

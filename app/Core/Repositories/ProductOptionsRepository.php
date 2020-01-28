@@ -823,9 +823,8 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         $site = $this->siteInterface->getSite(); 
         $invoiceItem = $this->getInvoiceItem();
         $data['binderyOptions'] = [];
-        $data['binderyOptions'] = $this->jobCalculatorInterface->getBinderyOptions($invoiceItem->product_id,$site->id);
-        $data['repitation'] = $this->getAutoCampaignData();
-        
+        //$data['binderyOptions'] = $this->jobCalculatorInterface->getBinderyOptions($invoiceItem->product_id,$site->id);
+        //$data['repitation'] = $this->getAutoCampaignData();
         return $data;
     }
 } 
