@@ -7,6 +7,7 @@ use App\Core\Interfaces\InvoiceInterface;
 use App\Core\Interfaces\SiteInterface;
 use App\Http\Requests\StockOptionRequest;
 use App\Http\Requests\ColorOptionRequest;
+use App\Core\Interfaces\DesignInterface;
 use App\Http\Requests\ProductOption\ScheduleDateRequest;
 
 
@@ -15,11 +16,13 @@ class ProductOptionsController extends Controller
     protected $productOptionsInterface;
     protected $invoiceInterface;
     protected $siteInterface;
+    protected $designInterface;
 
     public function __construct(  
         ProductOptionsInterface $productOptionsInterface,
         InvoiceInterface $invoiceInterface,
-        SiteInterface $siteInterface
+        SiteInterface $siteInterface,
+        DesignInterface $designInterface
     ) 
     {    
 
@@ -27,6 +30,7 @@ class ProductOptionsController extends Controller
         $this->productOptionsInterface  = $productOptionsInterface;
         $this->invoiceInterface         = $invoiceInterface;
         $this->siteInterface            = $siteInterface;
+        $this->designInterface  = $designInterface;
     }
 
     public function product(){
@@ -318,5 +322,34 @@ class ProductOptionsController extends Controller
     {
         //
     }
+    /**
+     * Show the form for editing the specified resource.
+     * @param  int  $designFileId , int side ,string type
+     * @return \Illuminate\Http\Response
+     */
+    public function getPreviewDesign(Request $request){
+        $designFileId = request("designFileId");
+        $side = request("side");
+        $type = request("type");
+        $largeThumbUrl = $this->designInterface->getLargeThumbDesign($designFileId, $side, $type);
+        return view('preview',compact(
+            'largeThumbUrl',
+            'side',
+            'type',
+            'designFileId'
+        ));
+    }
+    /* public function changeDesign(Request $request){
+        $designFileId = request("designFileId");
+        $side = request("side");
+        $type = request("type");
 
+        if($side == 1){
+
+            $url = "https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/front";
+        }else{
+            $url = "https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/back";
+        }
+        return redirect()->away($url);
+    } */
 }

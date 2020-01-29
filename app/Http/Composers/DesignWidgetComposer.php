@@ -24,6 +24,7 @@ class DesignWidgetComposer
     {   
         //Get Selected Design Files
         $designs = $this->designInterface->getSelectedDesigns();
+        
         return $view->with(
             [
               'designs' => $designs,

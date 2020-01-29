@@ -34547,6 +34547,29 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
           $("#addressBlock").show();
         }
       });
+    },
+    handlePreviewModal: function handlePreviewModal() {
+      $(".front-preview-block,.back-preview-block").on("click", function () {
+        var previewUrl = $(".preview-url").val();
+        var designId = $(this).children(".design-id").val();
+        var side = $(this).children(".side").val();
+        var type = $(this).children(".type").val();
+        var sideText = "Preview";
+        if (side == 1) {
+          sideText = sideText + " front";
+        } else {
+          sideText = sideText + " back";
+        }
+        var params = "?designFileId=" + designId + "&side=" + side + "&type=" + type;
+        previewUrl = previewUrl + params;
+        ecl._callApi(previewUrl, "GET", {}, function (response) {
+          $(".modal-title").text(sideText);
+          $(".modal-body").html(response);
+          $(".large-thumb-block").on("click", initialize);
+          window.productOption.changeBtnDesignFile(designId, side, type);
+          $('#commonModal').modal('show');
+        });
+      });
     }
   };
 
@@ -34555,6 +34578,19 @@ var _extends = Object.assign || function (target) { for (var i = 1; i < argument
       var $form = $("#productOptionForm");
       productOptionHandler.handleDatePicker();
       productOptionHandler.handleAddressBlockChange($form);
+      productOptionHandler.handlePreviewModal();
+    },
+    changeBtnDesignFile: function changeBtnDesignFile(designId, side, type) {
+      $("#changeDesignBtn").on("click", function () {
+        var myDesignUrl = "";
+        if (side == 1) {
+          myDesignUrl = "https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/front";
+        } else {
+          myDesignUrl = "https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/back";
+        }
+        window.location.href = myDesignUrl;
+        //window.location.href = `change-design/${designId}/${side}/${type}`;  
+      });
     }
   };
   window.productOption = productOption;

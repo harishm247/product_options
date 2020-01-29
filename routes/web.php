@@ -20,6 +20,11 @@ Auth::routes();
 Route::get('/home', 'HomeController@index')->name('home');
 
 Route::get('product', 'ProductOptionsController@product')->name('product');
+
+Route::get('preview-design','ProductOptionsController@getPreviewDesign')->name('preview-design');
+Route::get('start-over','ProductOptionsController@startOver')->name('start-over');
+/* Route::get('change-design/{designFileId?}/{side?}/{type?}','ProductOptionsController@changeDesign')->name('change-design'); */
+
 Route::get('productOption', 'ProductOptionsController@index')->name('productOption');
 
 Route::get('setStockOption','ProductOptionsController@setStockOption')->name('setStockOption');

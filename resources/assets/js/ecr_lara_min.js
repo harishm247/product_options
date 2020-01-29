@@ -107,14 +107,50 @@
           $("#addressBlock").show();
         }
       });   
-    }
+    },
+    handlePreviewModal: () => {
+      $(".front-preview-block,.back-preview-block").on("click", function () {
+        let previewUrl = $(".preview-url").val();
+        let designId = $(this).children(".design-id").val();
+        let side = $(this).children(".side").val();
+        let type = $(this).children(".type").val();
+        let sideText ="Preview";
+        if (side==1){
+          sideText = sideText + " front";
+        }else{
+          sideText = sideText + " back";
+        }
+        let params = `?designFileId=${designId}&side=${side}&type=${type}`;
+        previewUrl = previewUrl + params;
+        ecl._callApi(previewUrl, "GET", {}, function (response) {
+          $(".modal-title").text(sideText);
+          $(".modal-body").html(response);
+          $(".large-thumb-block").on("click", initialize);
+          window.productOption.changeBtnDesignFile(designId, side, type);
+          $('#commonModal').modal('show');
+        });
+      });
+    },
   };
-
+  
   const productOption = {
     __init: () => {
       const $form = $("#productOptionForm");
       productOptionHandler.handleDatePicker();
       productOptionHandler.handleAddressBlockChange($form);
+      productOptionHandler.handlePreviewModal();
+    },
+    changeBtnDesignFile: (designId, side, type) => {
+      $("#changeDesignBtn").on("click", function () {
+        let myDesignUrl="";
+        if (side ==1){
+          myDesignUrl = "https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/front";
+        }else{
+          myDesignUrl = "https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/back";
+        }
+        window.location.href = myDesignUrl;  
+        //window.location.href = `change-design/${designId}/${side}/${type}`;  
+      });
     }
   };
   window.productOption = productOption;

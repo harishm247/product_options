@@ -1,6 +1,7 @@
 @extends('layouts.app')
-
 @section('content')
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css">
 <div class="container">
     <div class="row">
         @if (session('status'))
@@ -9,36 +10,47 @@
             </div>
         @endif
         <div class="col-md-4">
-            <h2 class="text-center">@lang('product_option.design')</h2>
-            <div class="preview-block">
-                @if(!empty($designs['front']))
-                    <div class="front-preview-block">
-                        <label>@lang('product_option.front')</label>
-                        <div class="image-block">
-                            <img src="{{$designs['front']['thumb']}}">
+            @if(!empty($designs['front']) || !empty($designs['back']))
+                <h2 class="text-center">@lang('product_option.design')</h2>
+                <div class="preview-block">
+                    <input type="hidden" class="preview-url" value="{{route('preview-design')}}" />
+                    @if(!empty($designs['front']))
+                        <div class="front-preview-block">
+                            <input type="hidden" value="{{$designs['front']['id']}}" name="designId" class="design-id">
+                            <input type="hidden" value="1" name="side" class="side">
+                            <input type="hidden" value="{{$designs['front']['type']}}" name="type" class="type">
+                            <label>@lang('product_option.front')</label>
+                            <div class="image-block">
+                                <img src="{{$designs['front']['thumb']}}">
+                            </div>
                         </div>
-                    </div>
-                @endif
-                @if(!empty($designs['back']))
-                    <div class="back-preview-block">
-                        <label>@lang('product_option.back')</label>
-                        <div class="image-block">
-                            <img src="{{$designs['back']['thumb']}}">
+                    @endif
+                    @if(!empty($designs['back']))
+                        <div class="back-preview-block">
+                            <input type="hidden" value="{{$designs['back']['id']}}" name="designId" class="design-id">
+                            <input type="hidden" value="2" name="side" class="side">
+                            <input type="hidden" value="{{$designs['back']['type']}}" name="type" class="type">
+                            <label>@lang('product_option.back')</label>
+                            <div class="image-block">
+                                <img src="{{$designs['back']['thumb']}}">
+                            </div>
                         </div>
-                    </div>
-                @endif
-            </div>
-            <div class="make-change-btn">
-                <div class="dropdown">
-                    <button class="btn btn-dark dropdown-toggle" type="button" data-toggle="dropdown">Make changes
-                    <span class="caret"></span></button>
-                    <ul class="dropdown-menu">
-                        <li><a href="https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/front">Change front</a></li>
-                        <li><a href="https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/back">Change back</a></li>
-                        <li><a href="#">Clear selection</a></li>
-                    </ul>
+                    @endif
                 </div>
-            </div>
+                <div class="make-change-btn">
+                    <div class="dropdown">
+                        <button class="btn btn-dark dropdown-toggle" type="button" data-toggle="dropdown">Make changes
+                        <span class="caret"></span></button>
+                        <ul class="dropdown-menu">
+                            <li><a href="https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/front">Change front</a></li>
+                            <li><a href="https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/back">Change back</a></li>
+                            <li><a href="https://upload.expresscopy.com/ec/design/start-over">Clear selection</a></li>
+                        </ul>
+                    </div>
+                </div>
+            @else
+                <div>@lang('product_option.no_selection_message')</div>
+            @endif
         </div>
         <div class="col-md-8">
             <h2 class="text-center">@lang('product_option.details')</h2>
@@ -169,11 +181,38 @@
     </div>
 </div>
 @include('preview-modal')
+@include('photoswipe')
 @endsection
 @push('scripts')
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function(){
         window.productOption.__init();
     });
+    // Initializes and opens PhotoSwipe
+    function initialize() {
+       
+        $("#commonModal").modal("hide");
+        const pswpElement = document.querySelectorAll('.pswp')[0];
+        // build items array
+        var items = [
+                {
+                    src: $(".large-thumb-img").attr("src"),
+                    msrc : 'https://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif',
+                    w: 600,
+                    h: 600
+                }
+            ];
+        // define options
+        const options = {
+            zoomEl: false,
+            shareEl: false,
+            index: 0
+        };
+        const gallery = new PhotoSwipe( pswpElement, PhotoSwipeUI_Default, items, options);
+        gallery.init();
+        
+    }
 </script>
 @endpush
