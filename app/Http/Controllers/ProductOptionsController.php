@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Core\Interfaces\ProductOptionsInterface;
 use App\Core\Interfaces\InvoiceInterface;
 use App\Core\Interfaces\SiteInterface;
+use App\Core\Interfaces\JobCalculatorInterface;
 use App\Http\Requests\StockOptionRequest;
 use App\Http\Requests\ColorOptionRequest;
 use App\Http\Requests\ProductOption\ScheduleDateRequest;
@@ -15,11 +16,13 @@ class ProductOptionsController extends Controller
     protected $productOptionsInterface;
     protected $invoiceInterface;
     protected $siteInterface;
+    protected $jobInterface;
 
     public function __construct(  
         ProductOptionsInterface $productOptionsInterface,
         InvoiceInterface $invoiceInterface,
-        SiteInterface $siteInterface
+        SiteInterface $siteInterface,
+        JobCalculatorInterface $jobInterface
     ) 
     {    
 
@@ -27,18 +30,7 @@ class ProductOptionsController extends Controller
         $this->productOptionsInterface  = $productOptionsInterface;
         $this->invoiceInterface         = $invoiceInterface;
         $this->siteInterface            = $siteInterface;
-    }
-
-    public function product(){
-        $optionsData = $this->productOptionsInterface->getCollection();
-        if(empty($optionsData)){
-            // redirect code goes here
-            echo "Data Not Found";
-        }
-        //dd($optionsData);
-        return view('product',compact(
-            'optionsData'
-        ));
+        $this->jobInterface             = $jobInterface;
     }
     /**
      * Display a listing of the resource.
@@ -47,7 +39,7 @@ class ProductOptionsController extends Controller
      */
     public function index()
     {   
-        $getStock = $this->productOptionsInterface->getStockOption($invoiceItem->date_submitted, $invoiceItem->product_id, $invoice->site_id);
+        return view('product',$this->productOptionsInterface->getCollection());
     }
 
     /**
@@ -60,10 +52,12 @@ class ProductOptionsController extends Controller
      */
     public function setFinishOption(Request $request)
     {
-        return response()->json([
-            'status' => 'success',
-            'data' => $this->productOptionsInterface->setFinishOption($request->id)
-        ]);
+        // return response()->json([
+        //     'status' => 'success',
+        //     'data' => $this->productOptionsInterface->setFinishOption($request->id)
+        // ]);
+        $returnHTML = view('product_options.bindery_options',$this->productOptionsInterface->setFinishOption($request->id))->render();
+        return response()->json(array($returnHTML)); 
     }
 
     /**
@@ -75,11 +69,11 @@ class ProductOptionsController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function setStockOption(StockOptionRequest $request)
-    {            
+    {   
         return response()->json([
             'status' => 'success',
             'data' => $this->productOptionsInterface->setStockOptionId($request->id)
-        ]);
+        ]);                
     }
     
 
@@ -92,7 +86,7 @@ class ProductOptionsController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function setColorOption(ColorOptionRequest $request)
-    {
+    { 
         return response()->json([
             'status' => 'success',
             'data' => $this->productOptionsInterface->setColorOptionId($request->id)
@@ -220,7 +214,7 @@ class ProductOptionsController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function getAutoCampaign(Request $request)
+    public function autoCampaign(Request $request)
     {  
         return response()->json( $this->productOptionsInterface->setAutoCampaignData(request('repetitions')));
     }
@@ -235,24 +229,8 @@ class ProductOptionsController extends Controller
      */
     public function changeFrequency(Request $request)
     {
-        return response()->json([
-            'status' => $this->productOptionsInterface
-                                ->changeFrequency(request('frequency'))
-        ]);
-    }
-
-    /**
-     * Get the auto campaign data for mailing
-     * 
-     * @author Apoorv Vyas
-     * @param  \Illuminate\Http\Request $request
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function getAutoCampaignMailingData(Request $request)
-    {
-        return response()->json(
-            $this->productOptionsInterface->getRepeatitionDates()
+        return response()->json( 
+            $this->productOptionsInterface->changeFrequency(request('frequency'))
         );
     }
 
