@@ -11,26 +11,30 @@
         <div class="col-md-4">
             <h2 class="text-center">@lang('product_option.design')</h2>
             <div class="preview-block">
-                <div class="front-preview-block">
-                    <label>@lang('product_option.front')</label>
-                    <div class="image-block">
-                        <img src="{{ asset('images/back.jpeg') }}">
+                @if(!empty($designs['front']))
+                    <div class="front-preview-block">
+                        <label>@lang('product_option.front')</label>
+                        <div class="image-block">
+                            <img src="{{$designs['front']['thumb']}}">
+                        </div>
                     </div>
-                </div>
-                <div class="back-preview-block">
-                    <label>@lang('product_option.back')</label>
-                    <div class="image-block">
-                        <img src="{{ asset('images/back.jpeg') }}">
+                @endif
+                @if(!empty($designs['back']))
+                    <div class="back-preview-block">
+                        <label>@lang('product_option.back')</label>
+                        <div class="image-block">
+                            <img src="{{$designs['back']['thumb']}}">
+                        </div>
                     </div>
-                </div>
+                @endif
             </div>
             <div class="make-change-btn">
                 <div class="dropdown">
                     <button class="btn btn-dark dropdown-toggle" type="button" data-toggle="dropdown">Make changes
                     <span class="caret"></span></button>
                     <ul class="dropdown-menu">
-                        <li><a href="#">Change front</a></li>
-                        <li><a href="#">Change back</a></li>
+                        <li><a href="https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/front">Change front</a></li>
+                        <li><a href="https://upload.expresscopy.com/ec/design/index/option/myDesigns/displaySide/back">Change back</a></li>
                         <li><a href="#">Clear selection</a></li>
                     </ul>
                 </div>
@@ -139,6 +143,7 @@
         </div>   
     </div>
 </div>
+@include('preview-modal')
 @endsection
 @push('scripts')
 <script type="text/javascript">

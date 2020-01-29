@@ -1,7 +1,9 @@
 <?php
+
 namespace App\Providers;
 
 use App\Http\Composers\CheckoutSubNavComposer;
+use App\Http\Composers\DesignWidgetComposer;
 use Illuminate\Support\ServiceProvider;
 
 class ViewComposerServiceProvider extends ServiceProvider
@@ -17,6 +19,10 @@ class ViewComposerServiceProvider extends ServiceProvider
         view()->composer([
             'partials.checkout_subnav',
         ], CheckoutSubNavComposer::class);
+        // Selected Design Widget
+        view()->composer([
+            'product'
+        ], DesignWidgetComposer::class);
     }
 
     /**

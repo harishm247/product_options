@@ -827,6 +827,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         $data->put('scheduled_date',$dateScheduled);
         $data = $data->merge($this->getAutoCampaignData());
         //dd($data);
+
         return $data;
     }
 } 

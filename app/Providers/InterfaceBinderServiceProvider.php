@@ -24,6 +24,8 @@ use App\Core\Repositories\ProductOptionsRepository;
 use App\Core\Interfaces\ProductOptionsInterface;
 use App\Core\Repositories\PromotionRepository;
 use App\Core\Interfaces\PromotionInterface;
+use App\Core\Repositories\DesignRepository;
+use App\Core\Interfaces\DesignInterface;
 
 
 use Illuminate\Support\ServiceProvider;
@@ -96,6 +98,11 @@ class InterfaceBinderServiceProvider extends ServiceProvider
         $this->app->bind(
             PromotionInterface::class,
             PromotionRepository::class
+        );
+
+        $this->app->bind(
+            DesignInterface::class,
+            DesignRepository::class
         );
     }
 }
