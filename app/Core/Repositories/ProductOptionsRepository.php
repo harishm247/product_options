@@ -26,6 +26,7 @@ use App\Core\Models\OrderCore\BinderyOption;
 use App\Core\Models\OrderCore\Proof;
 use App\Core\Models\OrderCore\Phone;
 use App\Core\Interfaces\JobCalculatorInterface;
+use App\Http\Helpers\HolidayHelper;
 
 
 class ProductOptionsRepository extends BaseRepository implements ProductOptionsInterface
@@ -98,9 +99,9 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     }
 
     public function getInvoiceItem($new =[])
-    {
+    {   //2041833 ,1099260
         $params =  collect([
-            'id' => '2041833',
+            'id' => '1099260',
             'relations' => 'invoice'
         ]);        
         $params = $params->map(function($value,$key) use($new){
@@ -142,13 +143,10 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
             ->where(function($q) use($dateSubmitted){
                 $q->where('date_end','>',$dateSubmitted)
                   ->orWhereNull('date_end');
-            });     
-            
-            $hasStockOptions = $stockOptionQuery->count();
-            if($hasStockOptions)
-            {
-                $stockOptions = $stockOptionQuery->get();
-            }
+            })->groupBy('p.stock_option_id');     
+
+            $stockOptions = $stockOptionQuery->get();
+            $hasStockOptions = ($stockOptions->count() > 1)?true:false;
         }
         return compact('hasStockOptions','stockOptions');
     }
@@ -172,11 +170,10 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         ->where(function($query){
             $query->where('date_end','>',Carbon::now()->format('Y-m-d H:i:s'))
                 ->orWhereNull('date_end');
-        });
-        $hasFinishOption = $finishOptionQuery->count();
-        if($hasFinishOption){
-            $finishOptions = $finishOptionQuery->get();
-        }
+        })->groupBy('p.finish_option_id');
+        $finishOptions = $finishOptionQuery->get();
+        $hasFinishOption = ($finishOptions->count() > 1)?true:false;
+       
         return compact('hasFinishOption','finishOptions');
     }
 
@@ -216,21 +213,21 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         }        
 
         $invoiceItem->setDataValue('hasSelectedFinishOption', 1);
-        return [
-                'finishOption'  => $invoiceItem->product->finishOption->id,
-                'mailingOption' => $finishOptions->mailingOption,
-                'stockOption'   => $finishOptions->stockOption,
-                'colorOption'   => $finishOptions->colorOption,
-                'printOption'   => $finishOptions->printOption
-        ];
-        
+       // return true;
+
+        $data = collect();
+        $site = $this->siteInterface->getSite();       
+        $data->put('allBinderyOption',$this->binderyOptionModel->get()->groupBy('type'));
+        $data->put('binderyOptions',$this->jobCalculatorInterface->getBinderyOptions($invoiceItem->product_id,$site->id));
+        $data = $data->merge($this->getFinishOptions());            
+        return $data;   
     }
 
 
     public function getColorOptions()
     {
         $site = $this->siteInterface->getSite();
-        $invoiceItem = $this->getInvoiceItem([ 'relations' => 'product' ]);
+        $invoiceItem = $this->getInvoiceItem([ 'relations' => 'product' ]);      
         $colorOptions = collect();
         $colorOptionQuery = $this->colorOptionModel
         ->join('product as p','color_option.id','=','p.color_option_id')
@@ -240,7 +237,8 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
             'p.mailing_option_id' => $invoiceItem->product->mailing_option_id,
             'p.stock_option_id' => $invoiceItem->product->stock_option_id,
         ])
-        ->where('ppr.site_id',$site->id);
+        ->where('ppr.site_id',$site->id)
+        ->groupBy('p.color_option_id');
         $hasColorOption = $colorOptionQuery->count();
         if($hasColorOption){
             $colorOptions = $colorOptionQuery->get();
@@ -249,7 +247,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     }
 
     public function getAutoCampaignCode(){
-        $site = $this->siteInterface->getSite();
+        $site = $this->siteInterface->getSite();        
         $site->load('parent');
          if (!is_null($code = $site->getData('autoCampaignCode')->value) && !empty($code)) {
             return $code;
@@ -268,31 +266,34 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         $site  = $this->siteInterface->getSite();
         $invoice = $this->getInvoice();
         $invoiceItem = $this->getInvoiceItem();
-        $hideAutoCampaign = $site->getData('hideAutoCampaign');
+        $hideAutoCampaign = $site->getData('hideAutoCampaign')->value;
         $promotionCode = $this->getAutoCampaignCode($site);
-        if(!empty($promotionCode) && !$hideAutoCampaign->value)
+        if(!empty($promotionCode) && !$hideAutoCampaign)
         {
             $promotion = $this->promotionModel->where('code',$promotionCode)->first();
-            if(!$invoiceItem->original_invoice_item_id && $promotion->isEligible($invoice,$invoiceItem))
-            {
-                $return->put('promotion',$promotion);
-                $promotion->load('tiers');
-                $return->put('tiers',$promotion->tiers);
-                $tierValues = collect();
-                $promotion->tiers->each(function($tier) use (&$tierValues)
-                {
-                    $tierValues->put($tier->level , $promotion->getDiscount($invoiceItem, $tier->level));
-                });
-                $return->put('tierValues',$tierValues);
-            }
-            else
-            {
+            // if(!$invoiceItem->original_invoice_item_id && $promotion->isEligible($invoice,$invoiceItem))
+            // {
+            //     $return->put('promotion',$promotion);
+            //     $promotion->load('tiers');
+            //     $return->put('tiers',$promotion->tiers);
+            //     $tierValues = collect();
+            //     $promotion->tiers->each(function($tier) use (&$tierValues)
+            //     {
+            //         $tierValues->put($tier->level , $promotion->getDiscount($invoiceItem, $tier->level));
+            //     });
+            //     $return->put('tierValues',$tierValues);
+            // }
+            // else
+            // {
                 $hideAutoCampaign = true;
-            }
+            //}
         }
         
-        $return->put('autoCampaignData',$this->productOptionsInterface->getAutoCampaignDataValue());
-        $return->put('hideAutoCampaign',$hideAutoCampaign->value);        
+        $return->put('autoCampaignData',$this->getAutoCampaignDataValue());
+        $return->put('hideAutoCampaign',false);
+        $return->put('selectAutoCampaignLegal', (
+            $this->invoiceInterface->getDataValue('acceptAutoCampaignTerms') =='true' ? TRUE : FALSE
+        ));
         return $return;
     }
 
@@ -304,16 +305,15 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         {
             $invoiceItem = $this->getInvoiceItem();
             $invoiceItem->setDataValue('autoCampaignRepetitions', $repetitions);
-            if (0 == $repetitionCount) {
+            if (0 == $repetitions) {
                 // Reset to weekly frequency.
                 // _setDefaultAutoCampaignFrequency only works if frequency has not been previously set.
                 $invoiceItem->setDataValue('autoCampaignFrequency', 1);
             } else {
-                if (is_null($invoiceItem->getData('autoCampaignFrequency'))) {
+                if (is_null($invoiceItem->getDataValue('autoCampaignFrequency'))) {
                     $invoiceItem->setDataValue('autoCampaignFrequency', 1);
                 }
             }
-    
             if ($invoiceItem->promotion_id && $invoiceItem->promotion_id != $promotion->id) 
             {
                 $nonAutoCampaignPromoId = $invoiceItem->promotion_id;
@@ -327,7 +327,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
                 $invoiceItem->promotionAmount = 0.00;
                 $invoiceItem->save();
             }
-            $invoiceItem->buildRepetitions();
+            //$this->buildRepetitions();
             if (isset($nonAutoCampaignPromoId)) {
                 $invoiceItem->setPromotion(
                     $this->promotionModel->find($nonAutoCampaignPromoId)
@@ -348,19 +348,23 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     public function getPromotionData($promotionCode = ''){
         if(empty($promotionCode))
             $promotionCode              = $this->getAutoCampaignCode();
-        $promotion                  = $this->getPromotionByCode($promotionCode);
+        $promotion   = $this->promotionModel->where('code',$promotionCode)->first();;
         return compact('promotionCode','promotion');
     }
+
 
     public function getAutoCampaignDataValue()
     {
         $invoiceItem = $this->getInvoiceItem();
         $return = collect();
-        if (!$freq = $invoiceItem->getData('autoCampaignFrequency')->value) {
+
+        if (!$freq = $invoiceItem->getDataValue('autoCampaignFrequency')) {
             $freq = 1;
-            $return->put('frequency',$freq);
         }
-        $return->put('repetitions',$invoiceItem->getData('autoCampaignRepetitions')->value);
+        
+        $return->put('frequency',$freq);
+        $return->put('repetitions',$invoiceItem->getDataValue('autoCampaignRepetitions'));
+        $return->put('dates',$this->getRepeatitionDates(4));
         return $return;
     }
 
@@ -368,23 +372,23 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     {
         $invoiceItem = $this->getInvoiceItem();
         $invoiceItem->setDataValue('autoCampaignFrequency',$frequency);
-        $invoiceItem->buildRepetitions();
-        return true;
+        //$this->buildRepetitions();
+        return $this->getRepeatitionDates(4);
     }
 
-    public function getRepeatitionDates()
+    protected function getRepeatitionDates($repetitions)
     {
         $invoiceItem = $this->getInvoiceItem();
         $mailingDates = collect();
         $mailings = collect();
         $i = 0;
 
-        if (is_null($invoiceItem->getData('autoCampaignFrequency')->value)) 
+        if (is_null($invoiceItem->getDataValue('autoCampaignFrequency'))) 
         {
             $invoiceItem->setDataValue('autoCampaignFrequency', 1);
         }
         
-        $frequency = $invoiceItem->getData('autoCampaignFrequency')->value;
+        $frequency = $invoiceItem->getDataValue('autoCampaignFrequency');
         if (is_null($frequency)) 
         {
             $frequency = 1; // default to weekly
@@ -401,7 +405,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         while ($i < $repetitions) 
         {
             $i++;
-            $mailingDateTimeStamp = strtotime('+ ' . ($i * $frequency) . ' weeks', $initMailingDate);
+            $mailingDateTimeStamp = strtotime('+ ' . ($i * $frequency) . ' weeks', strtotime($initMailingDate));
             while ($holiday->isHoliday($mailingDateTimeStamp)) 
             {
                 $mailingDateTimeStamp = $holiday->closestProductionDay($mailingDateTimeStamp);
@@ -411,8 +415,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
 
         $mailingDates->each(function($value,$key) use(&$mailings){
             $mailings->put($key,['mailingDate' => date('M. j', $value)]);
-        });
-            
+        }); 
         return $mailings;
     }
 
@@ -426,18 +429,21 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
 
     public function setScheduledDate($date)
     {
+        $dateScheduled = Carbon::createFromFormat('m-d-Y',$date);
         if (!is_null($date)) {
             $invoiceItem =  $this->getInvoiceItem();
-            $invoiceItem->date_scheduled = Carbon::parse($date);
+            $today = Carbon::now();
+            if($today->eq($date)){
+                $dateScheduled = NULL;
+            }
+            $invoiceItem->date_scheduled = $dateScheduled;
             $invoiceItem->save();
+            
         }
-
-        $today = Carbon::now()->format('m-d-Y');
-        $dateScheduled = Carbon::parse($invoiceItem->date_scheduled)->format('m-d-Y');
-        if ($invoiceItem->date_scheduled == $today && is_null($invoiceItem->date_submitted)) {
-            $invoiceItem->date_scheduled = null;
-            $invoiceItem->save();
-        }
+        if($dateScheduled == NULL)
+            $dateScheduled = $today->format('m-d-Y');
+        else
+            $dateScheduled = $dateScheduled->format('m-d-Y');
 
         return $dateScheduled;
     }
@@ -449,7 +455,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         $invoiceItem->notes = $notes;
         $invoiceItem->save();
 
-        $reps = $invoiceItem->getData('autoCampaignRepetitions')->value;
+        $reps = $invoiceItem->getDataValue('autoCampaignRepetitions');
         if (!is_null($reps) && $reps > 0) {
             $invoiceItem->load('dependentItems');
             foreach ($invoiceItem->dependentItems as $repItem) {
@@ -462,28 +468,31 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     }
 
     public function setStockOptionId($stockOptionId)
-    {    
-        $invoiceItem = $this->getInvoiceItem();     
+    {           
+        $invoiceItem = $this->getInvoiceItem(['relations'=>'product']);   
         if(!empty($stockOptionId) && !empty($invoiceItem))
         {
-           $stockOption = $invoiceItem->setStockOptionId($stockOptionId);
-           return true;  
-        }       
+            $stockOption = $invoiceItem->setStockOptionId($stockOptionId);
+            if($invoiceItem->setStockOptionId($stockOptionId)){
+                return true;
+            }             
+        }
     }
 
     public function setColorOptionId($colorId)
     {
         $invoiceItem = $this->getInvoiceItem();
         if(!empty($colorId) && !empty($invoiceItem))
-        {
-           $colorOption = $invoiceItem->setColorOptionId($colorId);
-           return true; 
-        }        
+        {            
+           if($invoiceItem->setColorOptionId($colorId)){
+                return true;
+           }    
+        }                
     }
   
     public function addProofAction($proofId)
     {
-        $invoiceItem = $this->getInvoiceItem(['relations'=>'proofItem']);
+        $invoiceItem = $this->getInvoiceItem(['relations'=>'proofItem']);        
         $proof = $this->proofModel->find('1');   
         if ($invoiceItem->proofItem) {
             $invoiceItem->proofItem->proof_id = $invoiceItem->proofItem->proof_id;
@@ -491,11 +500,11 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
             $invoiceItem->proofItem->save();
         } else {
             $this->invoiceInterface->saveProofItem($invoiceItem, $proof);
-        }
-
+        }            
         if ($proof->delivery_method == 'faxed') {
             $this->setFaxedProofPhoneNumber($invoiceItem,$this->getFaxedProofPhoneNumber($invoiceItem));
         }
+        return true;
     }
 
     public function getFaxedProofPhoneNumber(&$invoiceItem)
@@ -503,7 +512,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
         $faxNumber = '';
         if ($invoiceItem->proofItem)
         {
-            $faxNumber = $invoiceItem->proofItem->getData('faxedProofPhoneNumber')->value;
+            $faxNumber = $invoiceItem->proofItem->getDataValue('faxedProofPhoneNumber');
         }
         if (empty($faxNumber))
         {
@@ -622,54 +631,43 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     public function removeBinderyItem($binderyOption)
     {
         $site = $this->siteInterface->getSite();
-        $binderyOption =  $this->binderyOptionModel->find('1'); 
+        $binderyOption =  $this->binderyOptionModel->find($binderyOption); 
         if(!empty($binderyOption))
         {
             $invoiceItem = $this->getInvoiceItem(['relations'=>['binderyItems.binderyOption','binderyItems.binderyItems.binderyOption','binderyItems.binderyItems.binderyItems.binderyOption','product']]); 
             $binderyData = $this->jobCalculatorInterface->getBinderyOptions($binderyOption->id,$site->id);
-            $this->binderyOptionModel->delete($binderyData->id);
+            $this->itemModel->delete($binderyData->id);
             return true;
         }
     }
 
-    public function buildRepetitions($invoiceId){
-
-        $invoiceItem = $this->getInvoiceItem();
-
-        $invoiceItem->load(['product','invoice']);
-
+    public function buildRepetitions(){
+        $invoiceItem = $this->getInvoiceItem(['relations'=>['product','invoice']]);
         // Check for inproduction or ready for production repetitions
         $repeatedItems = $this->invoiceInterface->getInvoiceItems([
-            'invoice_id' => $invoiceId,
-            'original_invoice_item_id' => '2041833',
+            'invoice_id' => $invoiceItem->invoice_id,
+            'original_invoice_item_id' => $invoiceItem->id,
             'status' => [
                 'ready for production', 'in production', 'in support'
             ]
         ]);
-
         if($repeatedItems->count() > 0)
             return ; // disallow rep changes when already in production
-
         //remove previous repetitions
         $previousRepetitions = $this->invoiceInterface->getInvoiceItems([
             'invoice_id' => $invoiceId,
             'original_invoice_item_id' => '2041833',
             'orderBy' => 'date_scheduled'
         ]);
-
         $repetitionCount = $this->invoiceInterface
                                 ->getDataValue('autoCampaignRepetitions');
-
         $mailingDateTimeStamps = $this->getRepetitionDates($repetitionCount);
-
         if (count($previousRepetitions) > 0 && $invoiceItem->status != 'incomplete') 
         {
             foreach ($previousRepetitions as $repetition) {
-
                 //check if this product is still available
                 if (!is_null($invoiceItem->productId)) {
                     $productCheck = $invoice->product;
-
                     if (count($productCheck->getPricing($invoiceItem->quantity, $invoiceItem->date_submitted,
                             $invoiceItem->invoice->siteId)) > 0) {
                         //has current pricing woohoo!
@@ -681,9 +679,7 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
                         }
                     }
                 }
-
                 $repetition->dateScheduled = array_shift($mailingDateTimeStamps);
-
                 $fields = array('name', 'shippingName', 'shippingCompany', 'shippingLine1', 'shippingLine2', 'shippingLine3', 'shippingCity', 'shippingState', 'shippingZip', 'shippingCountry');
                 foreach ($fields as $property) {
                     if (!is_null($invoiceItem->{$property})) {
@@ -747,20 +743,20 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
                     $repItem = $this->invoiceInterface->copyInvoiceItem($copyVars);
 
                     // copy over cass options
-                    $repItem->setDataValue('cassSelection', $invoiceItem->getData('cassSelection')->value);
+                    $repItem->setDataValue('cassSelection', $invoiceItem->getDataValue('cassSelection'));
                     $repItem->setDataValue(
-                        'cassAcceptedVariance', $invoiceItem->getData('cassAcceptedVariance')->value
+                        'cassAcceptedVariance', $invoiceItem->getDataValue('cassAcceptedVariance')
                     );
-                    $repItem->setDataValue('cassKeepDuplicates', $invoiceItem->getData('cassKeepDuplicates')->value);
+                    $repItem->setDataValue('cassKeepDuplicates', $invoiceItem->getDataValue('cassKeepDuplicates'));
                     $repItem->setDataValue(
-                        'cassSpecialInstructions', $invoiceItem->getData('cassSpecialInstructions')->value
+                        'cassSpecialInstructions', $invoiceItem->getDataValue('cassSpecialInstructions')
                     );
                     $repItem->setDataValue(
-                        'cassAutoFillPreference', $this->getData('cassAutoFillPreference')->value
+                        'cassAutoFillPreference', $invoiceItem->getDataValue('cassAutoFillPreference')
                     );
 
                     //copy over generic addressee
-                    $repItem->setDataValue('genericAddresseeId', $this->getData('genericAddresseeId')->value);
+                    $repItem->setDataValue('genericAddresseeId', $invoiceItem->getDataValue('genericAddresseeId'));
 
                 }
             }
@@ -793,11 +789,11 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     public function removeInvoiceProof($proofId)
     {
         $invoiceItem = $this->getInvoiceItem(['relations'=>'proofItem']);
-        $proof = $this->proofModel->find('1');       
-        dd($invoiceItem->proofItem);
+        $proof = $this->proofModel->find('1');          
         if($invoiceItem->proofItem)
         {            
             $invoiceItem->proofItem->delete();
+            return true;
         }
     }
 
@@ -817,14 +813,21 @@ class ProductOptionsRepository extends BaseRepository implements ProductOptionsI
     }
 
     public function getCollection(){
-        $data = null;
-        $data['finishOptions'] = $this->getFinishOptions();
-        $data['stockOptions'] = $this->getStockOption();
+        $data = collect();
+        $data = $data->merge($this->getFinishOptions());
+        $data = $data->merge($this->getStockOption());
+        $data = $data->merge($this->getColorOptions());
         $site = $this->siteInterface->getSite(); 
         $invoiceItem = $this->getInvoiceItem();
-        $data['binderyOptions'] = [];
-        //$data['binderyOptions'] = $this->jobCalculatorInterface->getBinderyOptions($invoiceItem->product_id,$site->id);
-        //$data['repitation'] = $this->getAutoCampaignData();
+        $data->put('allBinderyOption',$this->binderyOptionModel->get()->groupBy('type'));
+        $data->put('binderyOptions',$this->jobCalculatorInterface->getBinderyOptions($invoiceItem->product_id,$site->id));
+        $dateScheduled = $invoiceItem->date_scheduled;
+        if(!$dateScheduled)
+            $dateScheduled = Carbon::now();
+        $data->put('scheduled_date',$dateScheduled);
+        $data = $data->merge($this->getAutoCampaignData());
+        //dd($data);
+
         return $data;
     }
 } 

@@ -179,6 +179,7 @@ return [
         App\Providers\InterfaceBinderServiceProvider::class,
         App\Providers\ViewComposerServiceProvider::class,
         Barryvdh\Debugbar\ServiceProvider::class,
+        App\Providers\ViewComposerServiceProvider::class,
 
     ],
 

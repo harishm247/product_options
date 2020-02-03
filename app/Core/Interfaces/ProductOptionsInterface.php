@@ -19,7 +19,6 @@ interface ProductOptionsInterface
     public function setAutoCampaignData($repetitions);
     public function getAutoCampaignDataValue();
     public function changeFrequency($frequency);
-    public function getRepeatitionDates();
     public function setAcceptAutoCampaignTerms($accept);
     public function saveNotes($notes);    
     public function addBinderyItem($bindery,$invoiceItem); 
@@ -28,6 +27,7 @@ interface ProductOptionsInterface
     public function updateFaxedPhoneNumber($number);
     public function removeInvoiceProof($proofOption);
     public function setFinishOption($finishId);
+
 
 
 } 

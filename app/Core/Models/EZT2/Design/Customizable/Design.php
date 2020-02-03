@@ -10,7 +10,7 @@ namespace App\Core\Models\EZT2\Design\Customizable;
 
 use App\Core\Models\BaseModel;
 use App\Core\Models\EZT2\TemplateVar;
-
+use App\Core\Models\EZT2\User\Project\CustomizableDesign;
 class Design extends BaseModel
 {
     /**
@@ -29,6 +29,16 @@ class Design extends BaseModel
      */
     protected $table = 'customizable_design';
 
+
+    /**
+     * Establish a relationship between the designs and customizableDesigns.
+     *
+     * @return mixed
+    */
+    public function customizableDesigns()
+    {
+        return $this->hasMany(CustomizableDesign::class, 'customizable_design_id', 'id');
+    }
 
     /**
      * Get the template variables for the design's template.

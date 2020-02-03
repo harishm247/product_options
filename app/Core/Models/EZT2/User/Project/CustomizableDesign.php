@@ -11,6 +11,7 @@ namespace App\Core\Models\EZT2\User\Project;
 use App\Core\Traits\HasCompositePrimaryKey;
 use App\Core\Models\BaseModel;
 use App\Core\Models\EZT2\Design\Customizable\Design;
+use App\Core\Models\EZT2\User\Project;
 
 class CustomizableDesign extends BaseModel
 {
@@ -52,4 +53,23 @@ class CustomizableDesign extends BaseModel
         return Design::where($compositeKey)->first();
     }
     
+    /**
+     * Establish a relationship between the designs and project.
+     *
+     * @return mixed
+     */
+    public function project()
+    {
+        return $this->belongsTo(Project::class, 'user_project_id', 'id');
+    }
+
+    /**
+     * Establish a relationship between the customizableDesigns and designs.
+     *
+     * @return mixed
+    */
+    public function designs()
+    {
+        return $this->belongsTo(Design::class, 'customizable_design_id', 'id');
+    }
 }

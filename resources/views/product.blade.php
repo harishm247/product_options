@@ -55,126 +55,101 @@
         <div class="col-md-8">
             <h2 class="text-center">@lang('product_option.details')</h2>
             <form id="productOptionForm" method="post" action="">
-                <div class="form-group">
-                    <label>@lang('product_option.finish_option')</label>
-                    <select class="form-control" >
-                        @if ($optionsData['finishOptions']['hasFinishOption'] > 0)
-                            @foreach ($optionsData['finishOptions']['finishOptions'] as $finish)
-                                <option value="{{ $finish->id }}">{{ $finish->name }}</option>
+
+            <!-- Replace this div according to option select -->
+        
+                <!-- Finish option -->
+                @if($hasFinishOption)
+                <div class="form-group finish_option_section">
+                    <label>@lang('product_option.finish_option')</label>                    
+                    <select class="form-control finish_option">                       
+                        @if ($hasFinishOption > 0)
+                            @foreach ($finishOptions as $finish)
+                                <option value="{{ $finish['id'] }}" >{{ $finish['name'] }}</option>
                             @endforeach
                         @endif
                     </select>
                 </div>
-                <div class="bindery-option-block">
-                    <h3 class="text-center">@lang('product_option.bindery')</h3>
-                    <div class="form-group">
-                        <label>@lang('product_option.folding')</label>
-                        <select class="form-control" >
-                            <option>None</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>@lang('product_option.scoring')</label>
-                        <select class="form-control" >
-                            <option>None</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>@lang('product_option.sealing')</label>
-                        <select class="form-control" >
-                            <option>None</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="return-address-block" id="addressBlock">
-                    <h3 class="text-center">@lang('product_option.return_address')</h3>
-                    <div class="form-group">
-                        <label>@lang('product_option.name')</label>
-                        <input type="text" class="form-control" placeholder="">
-                    </div>    
-                    <div class="form-group">
-                        <label>@lang('product_option.company')</label>
-                        <input type="text" class="form-control" placeholder="">
-                    </div>    
-                    <div class="form-group">
-                        <label>@lang('product_option.address1')</label>
-                        <input type="text" class="form-control" placeholder="">
-                    </div>    
-                    <div class="form-group">
-                        <label>@lang('product_option.address2')</label>
-                        <input type="text" class="form-control" placeholder="">
-                    </div>    
-                    <div class="form-group">
-                        <label>@lang('product_option.city')</label>
-                        <input type="text" class="form-control" placeholder="">
-                    </div>    
-                    <div class="form-group row">
-                        <div class="col-md-6">
-                            <label>@lang('product_option.state')</label>
-                            <select class="form-control" >
-                                <option>Arizona</option>
-                                <option>California</option>
-                                <option>Texas</option>
-                            </select>        
-                        </div>
-                        <div class="col-md-6">
-                            <label>@lang('product_option.zip')</label>
-                            <input type="text" class="form-control" placeholder="">
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <div class="form-check">
-                        <input class="form-check-input return-address" type="checkbox">
-                        <label class="form-check-label">@lang('product_option.no_return_address')</label>
-                    </div>
-                </div>
-                <div class="form-group">
+                @endif
+
+                <!-- Stock option -->              
+                <div class="form-group stock_option_section">
                     <label>@lang('product_option.paper')</label>
-                    <select class="form-control" >
-                        @if ($optionsData['stockOptions']['hasStockOptions'] > 0)
-                            @foreach ($optionsData['stockOptions']['stockOptions'] as $paper)
-                                <option value="{{ $paper->id }}">{{ $paper->name }}</option>
+                    <!-- <select class="form-control @if(!empty($binderyOptions)) stock_option @endif"> -->
+                    <select class="form-control stock_option">
+                        @if ($hasStockOptions)
+                            @foreach ($stockOptions as $paper)
+                                <option value="{{ $paper['id'] }}" >{{ $paper['name'] }}</option>
                             @endforeach
                         @endif
                     </select>
                 </div>
-                <div class="form-group">
-                    <label></label>
-                    <div class="form-check pull-left" >
-                        <input class="form-check-input" type="checkbox">
-                        <label class="form-check-label">@lang('product_option.proof')</label>
+
+                <!-- Side/color Option -->
+                <div class="form-group stock_color_section">
+                    <label>@lang('Side')</label>
+                    <select class="form-control @if(count($colorOptions)>1) color_option @endif" >
+                        @if ($hasColorOption)
+                            @foreach ($colorOptions as $color)
+                                <option value="{{ $color['id'] }}">{{ $color['name'] }}</option>
+                            @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- paper option select Uncoated Cover Stock show Add Bindery optoin -->
+                <div class="bindery-option-block" style="display:none;">
+                        @include('product_options.bindery_options')
+                </div>
+                
+
+           
+            <!-- common section end here -->
+
+                <!-- Proof option -->
+                <div class="form-group d-flex">
+                    <div class="custom-control custom-checkbox mr-5" >
+                        <input class="custom-control-input shipped_proof" name="shipped_proof" type="checkbox" id="proof">
+                        <label class="custom-control-label" for="proof">@lang('product_option.proof')</label>
                     </div>
-                    <div class="pull-right">
+                    <div class="ml-5">
                         @lang('product_option.proof_price')
                     </div>
                 </div>
+                
+                
+                <!--Return Address Block -->
+                @if($hasFinishOption)
+                <div class="return-address-block" id="addressBlock">
+                    @include('product_options.return_address')
+                </div>
+                <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input return-address" type="checkbox" id="return_address">
+                        <label class="custom-control-label" for="return_address">@lang('product_option.no_return_address')</label>
+                    </div>
+                </div>  
+                @endif
+
                 <div class="form-group">
                     <label>@lang('product_option.production_date')</label>
                     <div class="input-group date" >
-                        <input type="text" class="form-control datepicker">
-                        <div class="input-group-addon">
-                            <span class="glyphicon glyphicon-th"></span>
+                        <input type="text" class="form-control datepicker" name="production_date" value="{{$scheduled_date}}">
+                        <div class="input-group-append">
+                            <span class="input-group-text"> <i class="fa fa-calendar"></i></span>
                         </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>@lang('product_option.repeat_mailing')</label>
-                    <select class="form-control" >
-                        <option>0 times</option>
-                        <option>Send 2x</option>
-                        <option>Send 3x</option>
-                        <option>Send 4x</option>
-                        <option>Send 5x</option>
-                    </select>
-                </div>
+                </div>            
+                @if(!$hideAutoCampaign)
+                    @include('product_options.auto_campaign')
+                @endif
                 <div class="form-group">
                     <label>@lang('product_option.notes')</label>
-                    <textarea class="form-control" rows="10" cols="10">
+                    <textarea class="form-control" rows="10" cols="10" name="notes">
                     </textarea> 
                 </div>
                 <div class="form-group text-center">
-                    <button type="submit" class=" btn btn-theme-secondary text-center product-opt-next-btn">@lang('product_option.next_btn')</button>
+                    <button type="submit" disabled="disabled" class=" btn btn-theme-secondary text-center product-opt-next-btn">@lang('product_option.next_btn')</button>
                 </div>
             </form>
         </div>   

@@ -27,15 +27,21 @@ Route::get('start-over','ProductOptionsController@startOver')->name('start-over'
 
 Route::get('productOption', 'ProductOptionsController@index')->name('productOption');
 
-Route::get('setStockOption','ProductOptionsController@setStockOption')->name('setStockOption');
-Route::get('setColorOption','ProductOptionsController@setColorOption')->name('setColorOption');
+Route::post('setStockOption','ProductOptionsController@setStockOption')->name('setStockOption');
+Route::post('setColorOption','ProductOptionsController@setColorOption')->name('setColorOption');
 
-Route::get('schedule_date','ProductOptionsController@setScheduledProductionDate');
+Route::post('schedule_date','ProductOptionsController@setScheduledProductionDate');
 
-Route::get('auto_campaign','ProductOptionsController@getAutoCampaign');
-Route::get('addBinderyOption','ProductOptionsController@addBinderyOption')->name('addBinderyOption');
-Route::get('removeBinderyOption','ProductOptionsController@removeBinderyOption')->name('removeBinderyOption');
-Route::get('addProof','ProductOptionsController@addProof')->name('addProof');
-Route::get('removeProof','ProductOptionsController@removeProof')->name('removeProof');
+Route::get('auto_campaign','ProductOptionsController@autoCampaign');
+Route::get('change_frequency','ProductOptionsController@changeFrequency')->name('change_frequency');
+Route::get('get_dates','ProductOptionsController@getAutoCampaignMailingData')->name('get_dates');
+Route::get('accept_campaign_terms','ProductOptionsController@acceptAutoCampaignTerms');
+Route::post('save_notes','ProductOptionsController@saveNotes');
+Route::post('addBinderyOption','ProductOptionsController@addBinderyOption')->name('addBinderyOption');
+Route::post('removeBinderyOption','ProductOptionsController@removeBinderyOption')->name('removeBinderyOption');
+Route::post('addProof','ProductOptionsController@addProof')->name('addProof');
+Route::post('removeProof','ProductOptionsController@removeProof')->name('removeProof');
 Route::get('addBinderyItem','ProductOptionsController@addBinderyOption')->name('addBinderyItem');
-Route::get('setFinishOption','ProductOptionsController@setFinishOption')->name('setFinishOption');
+Route::post('setFinishOption','ProductOptionsController@setFinishOption')->name('setFinishOption');
+
+

@@ -7,21 +7,35 @@ use App\Core\Repositories\BaseRepository;
 use App\Core\Models\EZT2\User\Project\CustomizableDesign;
 use App\Core\Models\OrderCore\DesignFile;
 use App\Core\Models\OrderCore\Invoice\Item\DesignFile as InoviceItemDesignFile;
+use App\Core\Models\OrderCore\DesignFile\UserProject as UserProjectDesignFile;
+use App\Core\Models\EZT2\Design\Customizable\Design as EZT2CustomizableDesign;
+use App\Core\Models\EZT2\User\Project;
 use DB;
 class DesignRepository extends BaseRepository implements DesignInterface
 {
   protected $userProjectCustomizableModel;
   protected $designFileModel;
   protected $inoviceItemDesignFileModel;
+  protected $userProjectDesignFileModel;
+  protected $eZT2CustomizableDesignModel;
+  protected $userProjectModel;
+  
   public function __construct(
       CustomizableDesign $userProjectCustomizableModel,
       DesignFile $designFileModel,
-      InoviceItemDesignFile $inoviceItemDesignFileModel
+      InoviceItemDesignFile $inoviceItemDesignFileModel,
+      UserProjectDesignFile $userProjectDesignFileModel,
+      EZT2CustomizableDesign $eZT2CustomizableDesignModel,
+      Project $userProjectModel
       )
   {
-        $this->userProjectCustomizableModel = $userProjectCustomizableModel;
-        $this->designFileModel              = $designFileModel;
-        $this->inoviceItemDesignFileModel   = $inoviceItemDesignFileModel;
+    $this->userProjectCustomizableModel = $userProjectCustomizableModel;
+    $this->designFileModel              = $designFileModel;
+    $this->inoviceItemDesignFileModel   = $inoviceItemDesignFileModel;
+    $this->userProjectDesignFileModel   = $userProjectDesignFileModel;
+    $this->eZT2CustomizableDesignModel  = $eZT2CustomizableDesignModel;
+    $this->userProjectModel             = $userProjectModel;
+    
   }
   /*
     function is for set static data values for design into session 
@@ -31,7 +45,7 @@ class DesignRepository extends BaseRepository implements DesignInterface
   {
     session()->flush();
     $session = [
-                /* 'useSessionCurrentDesigns'=>true,
+                'useSessionCurrentDesigns'=>true,
                 'frontId' => '2316632',
                 'frontType' => 'customizable',
                 'frontThumb' => 'http://upload.expresscopy.com/static/img/user/2019/11/25/00/df-5ddb8ace03f35/small-thumb.jpg',
@@ -43,8 +57,8 @@ class DesignRepository extends BaseRepository implements DesignInterface
                 'backType' => 'customizable',
                 'backThumb' => 'http://upload.expresscopy.com/static/img/user/2019/11/25/00/df-5ddb8acbe6de5/small-thumb.jpg',
                 'backProductId' => '2',
-                'backOrientation' => ''  */
-                'invoiceItemId'=>4
+                'backOrientation' => ''  
+                //'invoiceItemId'=>4
             ];      
     session($session);
   }
@@ -102,15 +116,11 @@ class DesignRepository extends BaseRepository implements DesignInterface
                                 ->with('designFile')->where([
                                     'invoice_item_id'=>session('invoiceItemId')
                                 ])->get();
-
                 foreach ($inoviceItemDesignFile as $key => $itemDesignFile) {
-                    $this->load($itemDesignFile->designFile);
+                    $designData  = $this->loadDesign($itemDesignFile);
+                    $selectedDesigns[$designData['side']] = $designData;
                 }
-                /* foreach ($item->designFiles as $designFile) {
-                    $design = new Expresscopy_Design();
-                    $design->load($designFile);
-                    $selectedDesigns[$designFile->side] = $design->getInfo();
-                }    */
+                return $selectedDesigns;
             }else{
                 return $selectedDesigns;
             }
@@ -118,114 +128,77 @@ class DesignRepository extends BaseRepository implements DesignInterface
         krsort($selectedDesigns);
         return $selectedDesigns;
     }
-
-    public function load($values = null){
-
-        if (!$values) {
-            throw new Expresscopy_Exception('Attempt to load with no values.');
+    public function loadDesign($itemDesignFile){
+        $selectedData = [];
+        $page = $itemDesignFile->designFile->page;
+        $selectedData['type'] = $itemDesignFile->designFile->type;
+        $selectedData['productId'] = $itemDesignFile->designFile->product_print_id;
+        $selectedData['id'] = $itemDesignFile->designFile->id;
+        
+        if($page == 1){
+            $selectedData['side'] = 'front';
+        }else{
+            $selectedData['side'] = 'back';
         }
 
-        // load and early return for objects
-        if ($values instanceof Excopy_Model_Design_File) {
-            $this->loadDesignFile($values);
-            if ($values->type == 'uploaded') {
-                $this->_type = 'uploaded';
-            }
-            return $this;
-
-        }
-        // defaults
-        if (!isset($values['side'])) {
-            $values['side'] = 'front';
-        }
-        $this->_side = $values['side'];
-        if ($values['side'] == 'front') {
-            $page = 1;
-        } else {
-            if ($values['side'] == 'back') {
-                $page = 2;
-            }
-        }
-        if (isset($values['frontDesignType'])) {
-            $this->_type = $values['frontDesignType'];
-        } else {
-            $this->_type = $values['backDesignType'];
-        }
-
-        if (isset($values['categoryId'])) {
-            $this->_categoryId = $values['categoryId'];
-        }
-        if (isset($values['backRequired'])) {
-            $this->_backRequired = $values['backRequired'];
-        }
-        if (isset($values['intention'])) {
-            $this->_intention = $values['intention'];
-        }
-        $this->_id = $values['designId'];
-        switch ($this->_type) {
+         switch ($selectedData['type']) {
             case 'customizable':
-                $design = Excopy_Db_Table::instance('Excopy_Model_EZT2_Design_Customizable_Design_Table')
-                    ->fetchRow($this->_id);
-                $thumbPrefix = Zend_Registry::get('serverConfig')->designFile->thumbRootURL;
-                $this->_smallThumbPath = $thumbPrefix . '/' . $design->smallThumbPath;
-                $this->_largeThumbPath = $thumbPrefix . '/' . $design->largeThumbPath;
-                $this->_orientation = $design->orientation;
-                $this->_productId = $design->productPrintId;
+                $design = $this->eZT2CustomizableDesignModel->where([
+                    'id'=>$selectedData['id']
+                ])->first();
+                /* for local setup here is a static url for preview need to change it
+                    $thumbPrefix = config("app.server_config")['designFile']['thumbRootURL']
+                */
+                $selectedData['thumb'] = "https://upload.expresscopy.com/static/img/user/path/".$design->small_thumb_path;
+                $selectedData['large_thumb'] = "https://upload.expresscopy.com/static/img/user/path/".$design->large_thumb_path;
+                $selectedData['orientation'] = $design->orientation;
+                $selectedData['productId'] = $design->product_print_id;
                 break;
             case 'unfinished':
-                $customizableDesignRow =
-                    Excopy_Db_Table::instance('Excopy_Model_EZT2_Design_Customizable_Design_Table')
-                        ->select()
-                        ->setIntegrityCheck(FALSE)
-                        ->from(array ('a' => 'ezt2.customizable_design'))
-                        ->join(
-                            array ('b' => 'ezt2.user_project_customizable_design'),
-                            'a.id = b.customizable_design_id',
-                            array ('b.small_thumb')
-                        )
-                        ->join(
-                            array ('c' => 'ezt2.user_project'),
-                            'b.user_project_id = c.id',
-                            array ()
-                        )
-                        ->where('page=?', $page)
-                        ->where('c.id=?', $this->_id)
-                        ->fetchRow();
-                $thumbPrefix = Zend_Registry::get('serverConfig')->designFile->thumbRootURL;
-                if (!is_null($customizableDesignRow->smallThumb)) {
-                    $this->_smallThumbPath = $customizableDesignRow->smallThumb;
+                $id =$selectedData['id'];
+                 $customizableDesignRow = $this->eZT2CustomizableDesignModel->whereHas('customizableDesigns.project',function($query)  use ($id, $page){
+                    $query->where('user_project.id',$id);
+                })
+                ->where([
+                    'page'=>$page
+                ])->first();  
+                
+                /* for local setup here is a static url for preview need to change it
+                    $thumbPrefix = config("app.server_config")['designFile']['thumbRootURL']
+                */
+                if (!is_null($customizableDesignRow->small_thumb_path)) {
+                    $selectedData['thumb'] = $customizableDesignRow->small_thumb_path;
                 } else {
-                    $this->_smallThumbPath = $thumbPrefix . '/' . $customizableDesignRow->smallThumbPath;
+                    /* url replace by this variable $thumbPrefix */
+                    $selectedData['thumb'] = "https://upload.expresscopy.com/static/img/user/path/".$customizableDesignRow->small_thumb_path;
                 }
-
-                $this->_largeThumbPath = $thumbPrefix . '/' . $customizableDesignRow->largeThumbPath;
-                $this->_orientation = $customizableDesignRow->orientation;
-                $this->_productId = $customizableDesignRow->productPrintId;
+                $selectedData['large_thumb'] = "https://upload.expresscopy.com/static/img/user/path/".$customizableDesignRow->large_thumb_path;
+                
+                $selectedData['orientation'] = $customizableDesignRow->orientation;
+                $selectedData['productId'] = $customizableDesignRow->productPrintId;
                 break;
             case 'customized':
-                $designFile = Excopy_Db_Table::instance('Excopy_Model_Design_File_Table')
-                    ->select()
-                    ->from(array ('df' => 'design_file'))
-                    ->join(
-                        array ('dfup' => 'design_file_user_project'), 'df.id = dfup.design_file_id', array ()
-                    )
-                    ->where('dfup.user_project_id = ?', $this->_id)
-                    ->where('df.page = ?', $page)
-                    ->fetchRow();
-                if ($designFile) {
-                    $this->loadDesignFile($designFile);
-                }
+                $designFile = $this->userProjectDesignFileModel->with(['designFile' => function($query) use ($productIds) {
+                        $query->where('design_file.page', $page);
+                    }])->where([
+                        'user_project_id' => $selectedData['id']
+                    ])->first();
+                /* for local setup here is a static url for preview need to change it
+                    $large_thumb = config("app.server_config")['imageServer']['userBaseURL']
+                */
+                $selectedData['thumb'] = "https://upload.expresscopy.com/static/img/user/path/".$designFile->path.'/'.$designFile->small_thumb;
                 break;
             default:
-                if (!is_null($this->_id)) {
-                    $designFile = Excopy_Db_Table::instance('Excopy_Model_Design_File_Table')
-                        ->fetchRow($this->_id);
-                    $this->loadDesignFile($designFile);
-                }
+                /* for local setup here is a static url for preview need to change it
+                    $large_thumb = config("app.server_config")['imageServer']['userBaseURL']
+                */
+                $selectedData['thumb'] = "https://upload.expresscopy.com/static/img/user/path/".$itemDesignFile->designFile->path.'/'.$itemDesignFile->designFile->small_thumb;
                 break;
         }
-        return $this;
+
+        return $selectedData;
     }
+    
     public function getLargeThumbDesign($designFileId, $side, $type)
     {   
         if ('customized' == $type) {
