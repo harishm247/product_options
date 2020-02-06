@@ -175,8 +175,8 @@
                 {
                     src: $(".large-thumb-img").attr("src"),
                     msrc : 'https://upload.wikimedia.org/wikipedia/commons/d/de/Ajax-loader.gif',
-                    w: 600,
-                    h: 600
+                    w: 0,
+                    h: 0
                 }
             ];
         // define options
@@ -186,6 +186,18 @@
             index: 0
         };
         const gallery = new PhotoSwipe( pswpElement, PhotoSwipeUI_Default, items, options);
+            gallery.listen('gettingData', function(index, item) {
+            if (item.w < 1 || item.h < 1) { // unknown size
+                var img = new Image(); 
+                img.onload = function() { // will get size after load
+                item.w = this.width; // set image width
+                item.h = this.height; // set image height
+                    gallery.invalidateCurrItems(); // reinit Items
+                        gallery.updateSize(true); // reinit Items
+                    }
+                img.src = item.src; // let's download image
+            }
+        });
         gallery.init();
         
     }
